@@ -136,6 +136,17 @@ _init_emit_posix_trust_helpers() {
   _init_emit_snapshot_helpers
 
   template=$(cat <<'EOF'
+__FUNC___sha256() {
+__SHELL_PRELUDE__
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 | cut -d' ' -f1
+  elif command -v sha256sum >/dev/null 2>&1; then
+    sha256sum | cut -d' ' -f1
+  else
+    return 1
+  fi
+}
+
 __FUNC___gtrconfig_path() {
 __SHELL_PRELUDE__
   local _gtr_git_common_dir _gtr_repo_root
@@ -158,7 +169,7 @@ __SHELL_PRELUDE__
     _gtr_hook_defs="$(__FUNC___hooks_read_definitions "$_gtr_config_file")" || return 1
   fi
   [ -n "$_gtr_hook_defs" ] || return 1
-  printf '%s\n' "$_gtr_hook_defs" | shasum -a 256 | cut -d' ' -f1
+  printf '%s\n' "$_gtr_hook_defs" | __FUNC___sha256
 }
 
 __FUNC___hooks_repo_root() {
@@ -202,7 +213,7 @@ __SHELL_PRELUDE__
   _gtr_hook_hash="$(__FUNC___hooks_current_content_hash "$_gtr_config_file" "$_gtr_definitions" 2>/dev/null)" || return 1
   _gtr_repo_root="$(__FUNC___hooks_repo_root "$_gtr_config_file" 2>/dev/null)" || return 1
   _gtr_repo_identity="$(__FUNC___hooks_repo_identity "$_gtr_repo_root" 2>/dev/null)" || return 1
-  printf 'v3\n%s\n%s\n%s\n' "$_gtr_repo_root" "$_gtr_repo_identity" "$_gtr_hook_hash" | shasum -a 256 | cut -d' ' -f1
+  printf 'v3\n%s\n%s\n%s\n' "$_gtr_repo_root" "$_gtr_repo_identity" "$_gtr_hook_hash" | __FUNC___sha256
 }
 
 __FUNC___hooks_marker_matches_config() {
@@ -239,6 +250,16 @@ _init_emit_fish_trust_helpers() {
   printf "function __FUNC___hooks_read_definitions\n  command bash -c '%s\n_hooks_read_definitions \"\$1\"' bash \"\$argv[1]\"\nend\n" "$snapshot_helpers"
   printf "function __FUNC___hooks_definitions_get\n  command bash -c '%s\n_hooks_definitions_get \"\$1\" \"\$2\"' bash \"\$argv[1]\" \"\$argv[2]\"\nend\n" "$snapshot_helpers"
   cat <<'FISH'
+function __FUNC___sha256
+  if command -q shasum
+    shasum -a 256 | cut -d' ' -f1
+  else if command -q sha256sum
+    sha256sum | cut -d' ' -f1
+  else
+    return 1
+  end
+end
+
 function __FUNC___gtrconfig_path
   set -l _gtr_git_common_dir (git rev-parse --git-common-dir 2>/dev/null)
   test -n "$_gtr_git_common_dir"; or return 1
@@ -259,7 +280,7 @@ function __FUNC___hooks_current_content_hash
     set _gtr_hook_defs (__FUNC___hooks_read_definitions "$_gtr_config_file")
   end
   test -n "$_gtr_hook_defs"; or return 1
-  printf '%s\n' "$_gtr_hook_defs" | shasum -a 256 | cut -d' ' -f1
+  printf '%s\n' "$_gtr_hook_defs" | __FUNC___sha256
 end
 
 function __FUNC___hooks_repo_root
@@ -303,7 +324,7 @@ function __FUNC___hooks_current_trust_key
   set -l _gtr_repo_identity (__FUNC___hooks_repo_identity "$_gtr_repo_root" 2>/dev/null | string collect)
   test $pipestatus[1] -eq 0; or return 1
   test -n "$_gtr_repo_identity"; or return 1
-  printf 'v3\n%s\n%s\n%s\n' "$_gtr_repo_root" "$_gtr_repo_identity" "$_gtr_hook_hash" | shasum -a 256 | cut -d' ' -f1
+  printf 'v3\n%s\n%s\n%s\n' "$_gtr_repo_root" "$_gtr_repo_identity" "$_gtr_hook_hash" | __FUNC___sha256
 end
 
 function __FUNC___hooks_marker_matches_config
