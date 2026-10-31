@@ -398,6 +398,7 @@ run_generated_replacement_repo_hooks() (
 
 @test "generated bash wrapper recognizes trust markers when shasum is not installed" {
   local root repo xdg no_shasum_path
+  command -v sha256sum >/dev/null 2>&1 || skip "sha256sum is not installed"
   root=$(mktemp -d)
   repo="$root/repo"
   xdg="$root/xdg"
